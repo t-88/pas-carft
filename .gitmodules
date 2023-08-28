@@ -1,0 +1,3 @@
+[submodule "csfml_fpc"]
+	path = csfml_fpc
+	url = https://github.com/DJMaster/csfml-fpc
