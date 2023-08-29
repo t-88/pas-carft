@@ -54,7 +54,7 @@ end;
 
 function IsoProj(x , y : integer) : Vector2;
 begin
-  result.x := WIDTH  >> 1 + (x - y) * (TILE_WIDTH  >> 1);
+  result.x :=  (x - y) * (TILE_WIDTH  >> 1);
   result.y :=  (x + y) * (TILE_HEIGHT >> 1);
 end;
 
@@ -104,6 +104,8 @@ begin
 end;
 function Window_obj.pollEvents() : boolean;
 begin
+
+
     result := sfRenderWindow_PollEvent(window_sf,@event_sf) = sfTrue;
     if result then
     begin
@@ -280,18 +282,63 @@ begin
 end;
 
 
+type Cursor_obj = object
+    x , y : integer;
+    constructor init(x_ , y_ : integer);
+end;
+constructor Cursor_obj.init(x_ , y_ : integer);
+begin
+    x := x_;
+    y := y_;
+end;
+
 var 
     engine : Engine_obj;
     rect : Rect_obj;
 
     tile : Sprite_obj;
+    selected_tile : Sprite_obj;
 
-procedure event(sf_event : sfEvent);
+
+    tiles : array [0..10] of integer;
+    start_x : integer; 
+    start_y : integer; 
+    tiles_count_x : integer;
+    tiles_count_y : integer;
+
+    cursor : Cursor_obj;
+
+procedure event(event_sf : sfEvent);
 begin
+    if event_sf.type_ = sfEvtKeyPressed then
+    begin
+        if sfKeyEvent(event_sf).code = sfKeyCode.sfKeyRight then
+        begin
+            cursor.x := (cursor.x + 1) mod tiles_count_x;
+        end
+        else if sfKeyEvent(event_sf).code = sfKeyCode.sfKeyLeft then
+        begin
+            cursor.x -= 1;
+            if cursor.x < 0 then
+                cursor.x := tiles_count_x - 1; 
+        end
+        else if sfKeyEvent(event_sf).code = sfKeyCode.sfKeyDown then
+        begin
+            cursor.y := (cursor.y + 1) mod tiles_count_y;
+        end
+        else if sfKeyEvent(event_sf).code = sfKeyCode.sfKeyUp then
+        begin
+            cursor.y -= 1;
+            if cursor.y < 0 then
+                cursor.y := tiles_count_y - 1; 
+        end; 
+        
+    end;
 end;
 
 procedure update();
 begin
+    
 end;
 
 procedure render();
@@ -301,23 +348,40 @@ var
 begin
     engine.window.clear(sfBlack);
 
-    Writeln(tile.height,tile.width);
 
-    for y := 0 to Floor(engine.window.height / (tile.height >> 0)) do 
+
+    for y := 0 to tiles_count_y - 1 do
     begin
-        for x := 0 to Floor(engine.window.width / (tile.width >> 0)) do 
+        for x := 0 to tiles_count_x - 1 do
         begin
-            vec := IsoProj(x,y);
-            vec.x := vec.x - 120;
-            vec.y := vec.y + 100;
+            if (cursor.x = x) and (cursor.y = y) then
+            begin 
+                vec := IsoProj(cursor.x,cursor.y);
+                vec.x := vec.x + start_x;
+                vec.y := vec.y + start_y;
+                
+                selected_tile.setPosition(vec.x,vec.y);
+                selected_tile.render(engine.window);
+            end
+            else 
+            begin
+                vec := IsoProj(x,y);
+                vec.x := vec.x + start_x;
+                vec.y := vec.y + start_y;
 
-            tile.setPosition(vec.x,vec.y);
-            tile.render(engine.window);
+                tile.setPosition(vec.x,vec.y);
+                tile.render(engine.window);
+            end;
         end;
     end;
+    
+
+
 end;
 
 
+var 
+    i : integer;
 
 begin
     
@@ -328,8 +392,26 @@ begin
     
     
     rect.init(0,0,50,50);
+    
     tile.fromFile('./art/tile.png');
     tile.scale(2,2);
+
+
+    selected_tile.fromFile('./art/tile_selected.png');
+    selected_tile.scale(2,2);
+
+
+
+
+    start_x := engine.window.width >> 1;
+    start_y := 200;
+    for i := 0 to 10 do
+        tiles[i] := 0;
+
+    tiles_count_x := 2;
+    tiles_count_y := 5;
+
+    cursor.init(0,0);
     
     
     engine.run;
