@@ -17,8 +17,8 @@ uses
 const 
   WIDTH = 800;
   HEIGHT = 800;
-  TILE_WIDTH =  128;
-  TILE_HEIGHT = 64;
+  TILE_WIDTH =  64;
+  TILE_HEIGHT = 32;
 
 
 
@@ -220,8 +220,6 @@ begin
     sfSprite_setPosition(sprite_sf,sfVector2f_New(cfloat(x),cfloat(y)));
 end;
 procedure Sprite_obj.scale(x_ :cfloat = 1;y_ : cfloat = 1);
-var 
-    size : sfVector2f;
 begin
     sfSprite_setScale(sprite_sf,sfVector2f_New(x_,y_));
 
@@ -308,6 +306,8 @@ var
 
     cursor : Cursor_obj;
 
+
+
 procedure event(event_sf : sfEvent);
 begin
     if event_sf.type_ = sfEvtKeyPressed then
@@ -341,12 +341,75 @@ begin
     
 end;
 
+procedure render_isomatric_grid();
+const
+    // manual project
+    GRID_OFFSET_X = TILE_HEIGHT;
+    GRID_OFFSET_Y = TILE_HEIGHT / 2 - 16;
+var 
+    line : PsfVertexArray;
+    projected : Vector2;
+
+
+    vertex : sfVertex;
+
+    x , y : integer;
+
+
+begin
+    vertex.color    := sfColor_New(0,0,0);
+
+
+    line := sfVertexArray_create();
+    sfVertexArray_setPrimitiveType(line,sfPrimitiveType.sfLines);
+
+    // draw horizontal lines
+    for y := 0 to Floor((engine.window.height / TILE_HEIGHT) + 0.5) do 
+    begin
+        for x := 0 to Floor((engine.window.width / TILE_WIDTH) + 0.5) do 
+        begin
+            projected := IsoProj(x,y);
+
+            vertex.position.x := projected.x  + start_x + GRID_OFFSET_X;      
+            vertex.position.y := projected.y  + start_y + GRID_OFFSET_Y;      
+                  
+            sfVertexArray_append(line,vertex);
+
+            if (x <> 0) and (x <> Floor((engine.window.width / TILE_WIDTH) + 0.5)) then 
+                sfVertexArray_append(line,vertex);
+        end;
+    end;
+
+    // draw vertical lines
+    for x := 0 to  Floor((engine.window.width / TILE_WIDTH) + 0.5) do
+    begin
+        for y := 0 to Floor((engine.window.height / TILE_HEIGHT) + 0.5) do
+        begin
+            projected := IsoProj(x,y);
+
+            vertex.position.x := projected.x + start_x + GRID_OFFSET_X;            
+            vertex.position.y := projected.y + start_y + GRID_OFFSET_Y;            
+
+            sfVertexArray_append(line,vertex);
+            if (y <> 0) and (y <> Floor((engine.window.height / TILE_HEIGHT) + 0.5)) then
+                sfVertexArray_append(line,vertex);
+        end;
+    end;   
+
+    sfRenderWindow_drawVertexArray(engine.window.window_sf,line,nil);
+
+
+    sfVertexArray_clear(line); 
+    sfVertexArray_destroy(line);
+end;
+
+
 procedure render();
 var
     vec : Vector2;
     x , y : integer;
 begin
-    engine.window.clear(sfBlack);
+    engine.window.clear(sfColor_New(135,206,235));
 
 
 
@@ -374,15 +437,17 @@ begin
             end;
         end;
     end;
-    
 
 
+
+    render_isomatric_grid();
 end;
 
 
 var 
     i : integer;
 
+        
 begin
     
     engine.window.init('pas-mine',800,600);
@@ -398,7 +463,8 @@ begin
 
 
     selected_tile.fromFile('./art/tile_selected.png');
-    selected_tile.scale(2,2);
+    selected_tile.scale(1,1);
+
 
 
 
@@ -416,4 +482,6 @@ begin
     
     engine.run;
     engine.window.done;
+
+
 end.

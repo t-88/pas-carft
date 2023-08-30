@@ -24,3 +24,4 @@ its developed and tested in linux, i dont know if it works on windows or how to 
 
 # Dev Imgs
 ![Placing Tiles](dev_imgs/placing_tiles.png)
+![Isometric Grid](dev_imgs/Isometric_grid.png)
