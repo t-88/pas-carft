@@ -17,9 +17,11 @@ CSFMLWindow;
 
 
 
-  type Vector2 = record 
+  type Vector2 = object 
     x : integer;
     y : integer;
+    procedure new(x_ , y_ : integer);
+
   end;
 
   function sfVector2f_New(x,y:cfloat): sfVector2f;
@@ -61,4 +63,11 @@ implementation
     result.width := w;
     result.height := h;
   end;
+
+  procedure Vector2.new(x_ , y_ : integer);
+  begin
+    x := x_;
+    y := y_;
+  end;
+
 end.

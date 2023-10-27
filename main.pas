@@ -27,6 +27,11 @@ const
 
 
 
+type Polygon = record
+    p1 , p2 , p3 , p4 :Vector2;
+end;
+
+
 
 function XYToIso(x , y : integer) : Vector2;
 begin
@@ -119,6 +124,44 @@ function AABB(rect1, rect2 : Rect_obj) : boolean;
 begin
     result := (rect1.x + rect1.width > rect2.x) and (rect1.y + rect1.height > rect2.y) and
              (rect2.x + rect2.width > rect1.x) and (rect2.y + rect2.height > rect1.y);
+end;
+
+
+procedure max_min_projection_poly_on_vec(poly : array of Vector2; vec : Vector2; var min , max : integer);
+begin
+    max := -1;
+    min := Floor(intPower(2.0,32 - 1));
+end;
+
+function collistion_Sat(poly1 , poly2 : Polygon) : boolean;
+var 
+    i: integer;
+    points1 , points2 : array [0..3] of Vector2;
+    p1 , p2 : array [0..1] of Vector2;
+    
+    norm , vec : Vector2;
+    
+    pmin1 , pmin2 , pmax1, pmax2 : integer;
+begin
+    points1[0] := poly1.p1; points1[1] := poly1.p2; points1[1] := poly1.p3; points1[1] := poly1.p4;
+    points2[0] := poly2.p1; points2[1] := poly2.p2; points2[1] := poly2.p3; points2[1] := poly2.p4;
+    
+    for i := 0 to 3 do 
+    begin
+        p1[0] := points1[i];
+        p2[1] := points1[(i + 1) mod 4];
+
+        vec.new(p1[0].x - p2[0].x,p1[0].y - p2[0].y);
+        norm.new(vec.y,-vec.x);
+
+        max_min_projection_poly_on_vec(points1,norm,pmin1,pmax1);        
+        max_min_projection_poly_on_vec(points2,norm,pmin2,pmax2);
+
+
+        .       .  +  +
+        if (pmin1 < pmax2) or (pmin2 < pmax1)
+
+    end;
 end;
 
 type Cursor_obj = object
@@ -247,8 +290,8 @@ begin
                                 Floor(Floor(mouse_position.y / mouse_rect_outline.height) * mouse_rect_outline.height)
                                 );
     
-    tile_rect.x = mouse_rect_outline.x + TILE_WIDTH / 2;
-    tile_rect.x = mouse_rect_outline.x + TILE_WIDTH / 2;
+    tile_rect.x := mouse_rect_outline.x + TILE_WIDTH / 2;
+    tile_rect.x := mouse_rect_outline.x + TILE_WIDTH / 2;
 end;
 
 procedure render_isomatric_grid();
