@@ -6,7 +6,8 @@ its developed and tested in linux, i dont know if it works on windows or how to 
 -   Place Tiles [X]
 -   Wrapper around sfml for pascal( dont forget the main goal) [X]
 -   moving cursor [X]
--   deff textures , set size for the game
+-   mouse projection 
+-   deff textures , set view size for the game
 
 -   Tile Editor [ ]
 -   Add Shadow  [ ]
