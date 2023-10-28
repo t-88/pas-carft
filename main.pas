@@ -128,40 +128,84 @@ end;
 
 
 procedure max_min_projection_poly_on_vec(poly : array of Vector2; vec : Vector2; var min , max : integer);
+var 
+    i ,projected : integer;
 begin
     max := -1;
-    min := Floor(intPower(2.0,32 - 1));
+    min := Floor(intPower(2,30));
+
+    for i := 0 to 3 do
+    begin
+        projected := poly[i].x * vec.x + poly[i].y * vec.y;
+        // writeln('projected ',projected,' ',poly[i].x,' ',vec.x);
+        if(projected > max) then max := projected; 
+        if(projected < min) then min := projected; 
+    end;
 end;
 
 function collistion_Sat(poly1 , poly2 : Polygon) : boolean;
 var 
     i: integer;
     points1 , points2 : array [0..3] of Vector2;
-    p1 , p2 : array [0..1] of Vector2;
+    p1 , p2 : Vector2;
     
     norm , vec : Vector2;
     
     pmin1 , pmin2 , pmax1, pmax2 : integer;
 begin
-    points1[0] := poly1.p1; points1[1] := poly1.p2; points1[1] := poly1.p3; points1[1] := poly1.p4;
-    points2[0] := poly2.p1; points2[1] := poly2.p2; points2[1] := poly2.p3; points2[1] := poly2.p4;
+    points1[0] := poly1.p1; points1[1] := poly1.p2; points1[2] := poly1.p3; points1[3] := poly1.p4;
+    points2[0] := poly2.p1; points2[1] := poly2.p2; points2[2] := poly2.p3; points2[3] := poly2.p4;
     
+    result := true;
     for i := 0 to 3 do 
     begin
-        p1[0] := points1[i];
-        p2[1] := points1[(i + 1) mod 4];
+        p1 := points1[i];
+        p2 := points1[(i + 1) mod 4];
+        // writeln('pos ',i,' ',p1.x , ' ',p1.y);
 
-        vec.new(p1[0].x - p2[0].x,p1[0].y - p2[0].y);
-        norm.new(vec.y,-vec.x);
+        vec.new(p1.x - p2.x,p1.y - p2.y);
+        norm.new(-vec.y,vec.x);
+
+        // writeln('normal: ',norm.x,' ',norm.y);
 
         max_min_projection_poly_on_vec(points1,norm,pmin1,pmax1);        
         max_min_projection_poly_on_vec(points2,norm,pmin2,pmax2);
 
 
-        .       .  +  +
-        if (pmin1 < pmax2) or (pmin2 < pmax1)
-
+        // writeln(pmin1,' ',pmax1,' ',pmin2,' ',pmax2);
+        if ((pmax1 < pmin2) or (pmax2 < pmin1)) then
+        begin
+            result := false;
+            break;
+        end;
     end;
+
+
+    if(result) then 
+    begin
+        for i := 0 to 3 do 
+        begin
+            p1 := points2[i];
+            p2 := points2[(i + 1) mod 4];
+
+
+            vec.new(p1.x - p2.x,p1.y - p2.y);
+            norm.new(vec.y,-vec.x);
+
+            max_min_projection_poly_on_vec(points1,norm,pmin1,pmax1);        
+            max_min_projection_poly_on_vec(points2,norm,pmin2,pmax2);
+
+            if ((pmax1 < pmin2) or (pmax2 < pmin1)) then
+            begin
+                result := false;
+                break;
+            end;
+        end;
+    end;
+
+
+    Exit(result);
+
 end;
 
 type Cursor_obj = object
@@ -202,6 +246,8 @@ var
     mouse_rect_outline : Rect_obj;
 
     mouse_position : Vector2;
+
+    top_left_poly : PsfConvexShape;
 
 
 
@@ -276,13 +322,15 @@ begin
         gridXY_f := XYToIso_pixel(cfloat(event_sf.mousebutton.x),cfloat(event_sf.mousebutton.y));
         mouse_rect.setPosition(gridXY_f.x,gridXY_f.y);
     
-        writeln(gridXY_f.x:0:5,' ',gridXY_f.y:0:5);
+        // writeln(gridXY_f.x:0:5,' ',gridXY_f.y:0:5);
     end
 end;
 
 procedure update();
 var 
     tile_rect : Rect_obj;
+
+    poly1 ,poly2: Polygon; 
 begin
     // mouse_rect_outline position update
     mouse_rect_outline.setPosition(
@@ -292,6 +340,22 @@ begin
     
     tile_rect.x := mouse_rect_outline.x + TILE_WIDTH / 2;
     tile_rect.x := mouse_rect_outline.x + TILE_WIDTH / 2;
+
+    poly1.p1.new(round(mouse_rect_outline.x),round(mouse_rect_outline.y));
+    poly1.p2.new(round(mouse_rect_outline.x                   ),round(mouse_rect_outline.y + mouse_rect_outline.height));
+    poly1.p3.new(round(mouse_rect_outline.x + mouse_rect_outline.width),round(mouse_rect_outline.y + mouse_rect_outline.height));
+    poly1.p4.new(round(mouse_rect_outline.x + mouse_rect_outline.width),round(mouse_rect_outline.y                    ));
+
+    poly2.p1.new(round(sfConvexShape_getPoint(top_left_poly,0).x),round(sfConvexShape_getPoint(top_left_poly,0).y));
+    poly2.p2.new(round(sfConvexShape_getPoint(top_left_poly,1).x),round(sfConvexShape_getPoint(top_left_poly,1).y));
+    poly2.p3.new(round(sfConvexShape_getPoint(top_left_poly,2).x),round(sfConvexShape_getPoint(top_left_poly,2).y));
+    poly2.p4.new(round(sfConvexShape_getPoint(top_left_poly,3).x),round(sfConvexShape_getPoint(top_left_poly,3).y));
+
+
+    if(collistion_Sat(poly1,poly2)) then
+    begin
+
+    end;
 end;
 
 procedure render_isomatric_grid();
@@ -318,6 +382,7 @@ begin
 
     tile_count_x := 2; // 5;
     tile_count_y := 2; // 5;
+
 
 
 
@@ -538,14 +603,18 @@ begin
 
     mouse_rect.render(engine.window);
 
-    mouse_rect_outline.render_outline(engine.window);
+    mouse_rect_outline.render(engine.window);
+
+
+
+    sfRenderWindow_drawConvexShape(engine.window.window_sf,top_left_poly,nil);
     
 end;
 
 
 var 
     i : integer;
-        
+    vec : sfVector2f;
 begin
     
     engine.window.init('pas-mine',800,600);
@@ -553,10 +622,25 @@ begin
     engine.render := @render;  
     engine.event := @event;  
     
+    // writeln(Floor(intPower(2,30)));
+
+    // Exit();
+
     
     rect.init(0,0,50,50);
     mouse_rect_outline.init(0,0,TILE_WIDTH,Floor(TILE_WIDTH / 2));
 
+
+
+
+    top_left_poly := sfConvexShape_create();
+    sfConvexShape_setPointCount(top_left_poly,4);
+
+    sfConvexShape_setPoint(top_left_poly,0,sfVector2f_New(50.0,1.0));
+    sfConvexShape_setPoint(top_left_poly,1,sfVector2f_New(1.0,50.0));
+    sfConvexShape_setPoint(top_left_poly,2,sfVector2f_New(50.0,100.0));
+    sfConvexShape_setPoint(top_left_poly,3,sfVector2f_New(100.0,50.0));
+     
     
     
     tile.fromFile('./art/tile.png');
@@ -588,6 +672,9 @@ begin
     
     engine.run;
     engine.window.done;
+
+
+    sfConvexShape_destroy(top_left_poly);
 end.
 
 

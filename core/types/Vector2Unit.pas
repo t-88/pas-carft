@@ -33,9 +33,12 @@ CSFMLWindow;
 
 implementation
   function sfVector2f_New(x,y:cfloat): sfVector2f;
+  var 
+    out : sfVector2f;
   begin
-    result.x := x;
-    result.y := y;
+    out.x := x;
+    out.y := y;
+    exit(out);
   end;
   function sfVector2i_New(x,y:Integer): sfVector2i;
   begin
