@@ -22,8 +22,10 @@ uses
     type Rect_obj = object
         //TODO: i dont destory the refernce for the sf_rectangle
         x , y : cfloat;
+        outline_color : sfColor;
         width , height : integer;
         rect_sfshape : PsfRectangleShape;
+        
 
 
         procedure init(x_ ,y_ , width_ , height_ : integer);
@@ -51,6 +53,8 @@ implementation
         rect_sfshape := sfRectangleShape_create();
         sfRectangleShape_SetSize(rect_sfshape,sfVector2f_New(cfloat(width_),cfloat(height_)));
         sfRectangleShape_setPosition(rect_sfshape,sfVector2f_New(cfloat(x_),cfloat(y_)));
+    
+        outline_color := sfColor_New(0,0,0);
     end;
     procedure Rect_obj.setSize(width_ , height_ : integer);
     begin
@@ -94,7 +98,7 @@ implementation
     procedure Rect_obj.render_outline(window : Window_obj);
     begin
         sfRectangleShape_setOutlineThickness(rect_sfshape,2.0);
-        sfRectangleShape_setOutlineColor(rect_sfshape,sfColor_New(0,0,0));
+        sfRectangleShape_setOutlineColor(rect_sfshape,outline_color);
         sfRectangleShape_setFillColor(rect_sfshape,sfColora_New(0,0,0,0));
         sfRenderWindow_drawRectangleShape(window.window_sf,rect_sfshape,nil);
     end;

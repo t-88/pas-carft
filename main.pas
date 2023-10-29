@@ -70,15 +70,10 @@ end;
 function XYToIso_pixel(x , y : integer) : Vector2;
 begin
     result := XYToIso(x,y);
-    // result.x :=  Floor((x - y) / 2);
-    // result.y :=  Floor((x + y) / 4);  
 end;
 function XYToIso_pixel(x , y : cfloat) : sfVector2f;
 begin
     result := XYToIso(x,y);
-
-    // result.x :=  (x - y) / 2;
-    // result.y :=  (x + y) / 4;  
 end;
 
 
@@ -120,7 +115,7 @@ begin
 end;
 
 
-function AABB(rect1, rect2 : Rect_obj) : boolean;
+function collision_AABB(rect1, rect2 : Rect_obj) : boolean;
 begin
     result := (rect1.x + rect1.width > rect2.x) and (rect1.y + rect1.height > rect2.y) and
              (rect2.x + rect2.width > rect1.x) and (rect2.y + rect2.height > rect1.y);
@@ -143,7 +138,7 @@ begin
     end;
 end;
 
-function collistion_Sat(poly1 , poly2 : Polygon) : boolean;
+function collision_Sat(poly1 , poly2 : Polygon) : boolean;
 var 
     i: integer;
     points1 , points2 : array [0..3] of Vector2;
@@ -239,7 +234,10 @@ var
 
     cursor : Cursor_obj;
 
-    mouse_rect : Rect_obj;
+
+    mouse_down , mouse_down_keep_frame : boolean;
+    mouse_rect , selected_tile_rect : Rect_obj;
+    cur_hovered_tile : Vector2;
 
 
 
@@ -248,6 +246,8 @@ var
     mouse_position : Vector2;
 
     top_left_poly : PsfConvexShape;
+
+    
 
 
 
@@ -260,8 +260,7 @@ var
     gridXY_f : sfVector2f;
     a : sfVector2f;
 
-begin
-
+begin   
     if event_sf.type_ = sfEvtKeyPressed then
     begin
         if event_sf.key.code = sfKeyCode.sfKeyRight then
@@ -316,6 +315,8 @@ begin
     end
     else if event_sf.type_ = sfEvtMouseButtonPressed then
     begin
+        mouse_down := true;
+        mouse_down_keep_frame := true;
         // a := IsoToXY_pixel(cfloat(event_sf.mousebutton.x),cfloat(event_sf.mousebutton.y));
 
 
@@ -324,36 +325,159 @@ begin
     
         // writeln(gridXY_f.x:0:5,' ',gridXY_f.y:0:5);
     end
+
 end;
 
+function isomatric_collided_with_center(var idx : Vector2): boolean;
+var 
+    poly1, poly2 : Polygon;
+    selected_tile_pos : Vector2;
+begin
+    // calc mouse click offseted 
+    selected_tile_pos.new(Floor(mouse_rect_outline.x) - start_x,Floor(mouse_rect_outline.y) - start_y);
+    // get iso (x , y)
+    idx := IsoToXY(selected_tile_pos.x,selected_tile_pos.y);
+    
+    poly1.p1.new(round(mouse_position.x)                       ,round(mouse_position.y));
+    poly1.p2.new(round(mouse_position.x                   )    ,round(mouse_position.y + 1));
+    poly1.p3.new(round(mouse_position.x + 1),round(mouse_position.y + 1));
+    poly1.p4.new(round(mouse_position.x + 1),round(mouse_position.y    ));
+    
+
+    poly2.p1.new(round(mouse_rect_outline.x + mouse_rect_outline.width / 2),round(mouse_rect_outline.y                                ));
+    poly2.p2.new(round(mouse_rect_outline.x                               ),round(mouse_rect_outline.y + mouse_rect_outline.height / 2));
+    poly2.p3.new(round(mouse_rect_outline.x + mouse_rect_outline.width / 2),round(mouse_rect_outline.y + mouse_rect_outline.height    ));
+    poly2.p4.new(round(mouse_rect_outline.x + mouse_rect_outline.width    ),round(mouse_rect_outline.y + mouse_rect_outline.height / 2));
+
+
+
+
+    Exit(collision_Sat(poly1,poly2));
+end;
+
+function get_selected_block_index(var center : boolean):Vector2;
+var
+    mouse_rect , corner_rect  : Rect_obj;
+
+begin
+
+    if(isomatric_collided_with_center(result)) then
+        Exit(result);
+
+
+    mouse_rect.init(mouse_position.x,mouse_position.y,1,1);
+    corner_rect.init(round(mouse_rect_outline.x),round(mouse_rect_outline.y),round(mouse_rect_outline.width / 2),round(mouse_rect_outline.height / 2));
+
+    if(collision_AABB(mouse_rect,corner_rect)) then
+    begin
+        result.x -= 1;
+
+        // writeln('top left');
+        Exit(result);
+    end;
+
+    corner_rect.x += round(mouse_rect_outline.width / 2);
+    if(collision_AABB(mouse_rect,corner_rect)) then
+    begin
+        result.y -= 1;
+        // writeln('top right');
+        Exit(result);
+    end;
+
+    corner_rect.y += round(mouse_rect_outline.height / 2);
+    if(collision_AABB(mouse_rect,corner_rect)) then
+    begin
+        // writeln('bottom right');
+        result.x += 1;
+        Exit(result);
+    end;
+
+    corner_rect.x -= round(mouse_rect_outline.width / 2);
+    if(collision_AABB(mouse_rect,corner_rect)) then
+    begin
+        // writeln('bottom left');
+        result.y += 1;
+        Exit(result);
+    end;
+end;
 procedure update();
 var 
-    tile_rect : Rect_obj;
+    poly1 ,poly2: Polygon;
 
-    poly1 ,poly2: Polygon; 
+    selected_tile_index , a : Vector2;
+    is_in_center : boolean;
+
+
 begin
-    // mouse_rect_outline position update
-    mouse_rect_outline.setPosition(
-                                Floor(Floor(mouse_position.x / mouse_rect_outline.width ) * mouse_rect_outline.width),
-                                Floor(Floor(mouse_position.y / mouse_rect_outline.height) * mouse_rect_outline.height)
-                                );
-    
-    tile_rect.x := mouse_rect_outline.x + TILE_WIDTH / 2;
-    tile_rect.x := mouse_rect_outline.x + TILE_WIDTH / 2;
-
-    poly1.p1.new(round(mouse_rect_outline.x),round(mouse_rect_outline.y));
-    poly1.p2.new(round(mouse_rect_outline.x                   ),round(mouse_rect_outline.y + mouse_rect_outline.height));
-    poly1.p3.new(round(mouse_rect_outline.x + mouse_rect_outline.width),round(mouse_rect_outline.y + mouse_rect_outline.height));
-    poly1.p4.new(round(mouse_rect_outline.x + mouse_rect_outline.width),round(mouse_rect_outline.y                    ));
-
-    poly2.p1.new(round(sfConvexShape_getPoint(top_left_poly,0).x),round(sfConvexShape_getPoint(top_left_poly,0).y));
-    poly2.p2.new(round(sfConvexShape_getPoint(top_left_poly,1).x),round(sfConvexShape_getPoint(top_left_poly,1).y));
-    poly2.p3.new(round(sfConvexShape_getPoint(top_left_poly,2).x),round(sfConvexShape_getPoint(top_left_poly,2).y));
-    poly2.p4.new(round(sfConvexShape_getPoint(top_left_poly,3).x),round(sfConvexShape_getPoint(top_left_poly,3).y));
-
-
-    if(collistion_Sat(poly1,poly2)) then
+    if(mouse_down_keep_frame) then
     begin
+       mouse_down_keep_frame := false;
+    end
+    else 
+        mouse_down := false;
+
+
+    is_in_center := false;
+    mouse_rect_outline.setPosition(
+                            Floor(Floor(mouse_position.x / mouse_rect_outline.width ) * mouse_rect_outline.width),
+                            Floor(Floor(mouse_position.y / mouse_rect_outline.height) * mouse_rect_outline.height)
+                        );
+    selected_tile_index := get_selected_block_index(is_in_center);
+    if(not isomatric_collided_with_center(a)) then
+    begin
+        a := get_selected_block_index(is_in_center);
+        // mouse_rect_outline.setPosition(
+            // mouse_rect_outline.x + a.x,
+            // mouse_rect_outline.y + a.y
+        // );
+    end;
+    cur_hovered_tile.new(a.x,a.y);
+    a.new(a.x * 32 - a.y * 32,a.x * 16 + a.y * 16 );
+
+
+    // sfConvexShape_setPoint(top_left_poly,0,sfVector2f_New(start_x + a.x + mouse_rect_outline.width / 2,start_y                                 + a.y));
+    // sfConvexShape_setPoint(top_left_poly,1,sfVector2f_New(start_x + a.x                               ,start_y + mouse_rect_outline.height / 2 + a.y));
+    // sfConvexShape_setPoint(top_left_poly,2,sfVector2f_New(start_x + a.x + mouse_rect_outline.width / 2,start_y + mouse_rect_outline.height     + a.y));
+    // sfConvexShape_setPoint(top_left_poly,3,sfVector2f_New(start_x + a.x + mouse_rect_outline.width    ,start_y + mouse_rect_outline.height / 2 + a.y));
+
+
+
+
+
+    // if(not isomatric_collided_with_center(a)) then
+    // begin
+        // a := get_selected_block_index(is_in_center);
+        // a.new(a.x * 32 - a.y * 32,a.x * 16 + a.y * 16 );
+        // mouse_rect_outline.setPosition(
+            // mouse_rect_outline.x + a.x,
+            // mouse_rect_outline.y + a.y
+        // );
+    // end;
+
+    if(mouse_down) then
+    begin
+        // writeln('mouse down');
+        // writeln(selected_tile_pos.x,' ',selected_tile_pos.y);
+
+
+        // mouse_rect_outline position update
+
+
+
+        // writeln('index: ',selected_tile_index.x,' ',selected_tile_index.y);
+        // selected_tile_index := IsoToXY(selected_tile_index.x * 32 - selected_tile_index.y * 32,selected_tile_index.x * 16 + selected_tile_index.y * 16 );
+        // writeln('selected_tile_index: ',selected_tile_index.x,' ',selected_tile_index.y);
+
+        // mouse_rect_outline.setPosition(
+            // Floor(start_x + selected_tile_index.x * 32),
+            // Floor(start_y + selected_tile_index.y * 16)
+        // );
+
+        // sfConvexShape_setPoint(top_left_poly,0,sfVector2f_New(start_x + a.x + mouse_rect_outline.width / 2,start_y                                 + a.y));
+        // sfConvexShape_setPoint(top_left_poly,1,sfVector2f_New(start_x + a.x                               ,start_y + mouse_rect_outline.height / 2 + a.y));
+        // sfConvexShape_setPoint(top_left_poly,2,sfVector2f_New(start_x + a.x + mouse_rect_outline.width / 2,start_y + mouse_rect_outline.height     + a.y));
+        // sfConvexShape_setPoint(top_left_poly,3,sfVector2f_New(start_x + a.x + mouse_rect_outline.width    ,start_y + mouse_rect_outline.height / 2 + a.y));
+
 
     end;
 end;
@@ -380,8 +504,8 @@ begin
     grid_offset := XYToIso(0.5,-0.5);
 
 
-    tile_count_x := 2; // 5;
-    tile_count_y := 2; // 5;
+    tile_count_x := 5; // 5;
+    tile_count_y := 5; // 5;
 
 
 
@@ -429,186 +553,51 @@ begin
 end;
 
 
-procedure render_grid();
-var 
-    line : PsfVertexArray;
-    x , y : integer;
-    tile_count_x : integer; 
-    tile_count_y : integer; 
-
-
-    vertex : sfVertex;
-begin
-    vertex.color    := sfColor_New(255,255,0);
-
-    tile_count_x := Floor((engine.window.width / TILE_WIDTH) + 0.5); // 5;
-    tile_count_y := Floor((engine.window.height / TILE_HEIGHT) + 0.5); // 5;
-
-
-
-    line := sfVertexArray_create();
-    sfVertexArray_setPrimitiveType(line,sfPrimitiveType.sfLines);
-
-    // draw horizontal lines
-    for y := 0 to Floor(tile_count_y) do 
-    begin
-        for x := 0 to Floor(tile_count_x) do 
-        begin
-            vertex.position.x := x * TILE_WIDTH   + start_x - TILE_WIDTH / 2;
-            vertex.position.y := y * TILE_HEIGHT / 2 + start_y;
-                  
-            sfVertexArray_append(line,vertex);
-
-            if (x <> 0) and (x <> tile_count_x) then 
-                sfVertexArray_append(line,vertex);
-        end;
-    end;
-
-    // draw vertical lines
-    for x := 0 to  Floor(tile_count_x) do
-    begin
-        for y := 0 to Floor(tile_count_y) do
-        begin
-            vertex.position.x := x * TILE_WIDTH   + start_x - TILE_WIDTH / 2;
-            vertex.position.y := y * TILE_HEIGHT / 2 + start_y;
-
-            sfVertexArray_append(line,vertex);
-            if (y <> 0) and (y <> Floor(tile_count_y)) then
-                sfVertexArray_append(line,vertex);
-        end;
-    end;   
-
-    sfRenderWindow_drawVertexArray(engine.window.window_sf,line,nil);
-
-
-    sfVertexArray_clear(line); 
-    sfVertexArray_destroy(line);
-end;
-
-procedure render_collistion_boxes();
-var 
-    line : PsfVertexArray;
-    x , y : integer;
-    tile_count_x : integer; 
-    tile_count_y : integer; 
-
-
-    vertex : sfVertex;
-
-    projected : Vector2;
-begin
-    vertex.color    := sfColor_New(255,255,0);
-
-    tile_count_x := Floor((engine.window.width / TILE_WIDTH) + 0.5); // 5;
-    tile_count_y := Floor((engine.window.height / TILE_HEIGHT) + 0.5); // 5;
-
-
-
-    line := sfVertexArray_create();
-    sfVertexArray_setPrimitiveType(line,sfPrimitiveType.sfLines);
-
-    // draw horizontal lines
-    for y := 0 to Floor(tile_count_y) do 
-    begin
-        for x := 0 to Floor(tile_count_x) do 
-        begin
-            projected := XYToIso(x,y);
-            vertex.position.x := projected.x  + start_x;      
-            vertex.position.y := projected.y  + start_y;    
-
-            // vertex.position.x := x * TILE_WIDTH   + start_x - TILE_WIDTH / 2;
-            // vertex.position.y := y * TILE_HEIGHT / 2 + start_y;
-                  
-            sfVertexArray_append(line,vertex);
-
-            if (x <> 0) and (x <> tile_count_x) then 
-                sfVertexArray_append(line,vertex);
-        end;
-    end;
-
-    // draw vertical lines
-    for x := 0 to  Floor(tile_count_x) do
-    begin
-        for y := 0 to Floor(tile_count_y) do
-        begin
-            projected := XYToIso(x,y);
-            vertex.position.x := projected.x  + start_x;      
-            vertex.position.y := projected.y  + start_y;    
-
-
-
-            sfVertexArray_append(line,vertex);
-            if (y <> 0) and (y <> Floor(tile_count_y)) then
-                sfVertexArray_append(line,vertex);
-        end;
-    end;   
-
-    sfRenderWindow_drawVertexArray(engine.window.window_sf,line,nil);
-
-
-    sfVertexArray_clear(line); 
-    sfVertexArray_destroy(line);
-end;
-
-
 
 procedure render();
 var
     vec : Vector2;
     temp_vec : sfVector2f;
     x , y : integer;
+
+    outline_rect : Rect_obj;
+    
 begin
     engine.window.clear(sfColor_New(135,206,235));
 
-    // writeln('********************************');
+    outline_rect.init(0,0,TILE_WIDTH,Floor(TILE_WIDTH / 2));
+    outline_rect.outline_color := sfColora_New(255,0,0,100);
+
     for y := 0 to tiles_count_y - 1 do
     begin
         for x := 0 to tiles_count_x - 1 do
         begin
-            if (cursor.x = x) and (cursor.y = y) then
-            begin 
-                vec := XYToIso(cursor.x,cursor.y);
-                if cursor.changed then
-                begin
-                    cursor.changed := False;
-                end;
 
-                vec.x := vec.x * Floor(TILE_WIDTH  / 2) + start_x;
-                vec.y := vec.y * Floor(TILE_HEIGHT / 4) + start_y;
+            vec := XYToIso(x,y);
+            vec.x := vec.x + start_x;
+            vec.y := vec.y  + start_y;
 
+            outline_rect.setPosition(vec.x,vec.y);
 
-                selected_tile.setPosition(vec.x,vec.y);
-                selected_tile.render(engine.window);
+            
+            tile.setPosition(vec.x,vec.y);
+            if((cur_hovered_tile.x = x) and (cur_hovered_tile.y = y))then begin
             end
-            else 
-            begin
-                
-                vec := XYToIso(x,y);
-
-                vec.x := vec.x + start_x;
-                vec.y := vec.y  + start_y;
-
-
-                tile.setPosition(vec.x,vec.y);
+            else
                 tile.render(engine.window);
-            end;
+
+
+            // outline_rect.render_outline(engine.window);
         end;
     end;
 
 
+    // render_isomatric_grid();
+    // mouse_rect_outline.render_outline(engine.window);
 
-    render_isomatric_grid();
-    // render_grid();
-    // render_collistion_boxes();
-
-    mouse_rect.render(engine.window);
-
-    mouse_rect_outline.render(engine.window);
+    // sfRenderWindow_drawConvexShape(engine.window.window_sf,top_left_poly,nil);
 
 
-
-    sfRenderWindow_drawConvexShape(engine.window.window_sf,top_left_poly,nil);
-    
 end;
 
 
@@ -617,21 +606,17 @@ var
     vec : sfVector2f;
 begin
     
-    engine.window.init('pas-mine',800,600);
+    engine.window.init('pas-craft',800,600);
     engine.update := @update;  
     engine.render := @render;  
     engine.event := @event;  
     
-    // writeln(Floor(intPower(2,30)));
-
-    // Exit();
-
     
     rect.init(0,0,50,50);
     mouse_rect_outline.init(0,0,TILE_WIDTH,Floor(TILE_WIDTH / 2));
 
 
-
+    cur_hovered_tile.new(-1,-1);
 
     top_left_poly := sfConvexShape_create();
     sfConvexShape_setPointCount(top_left_poly,4);
@@ -654,13 +639,13 @@ begin
 
 
 
-    start_x := TILE_WIDTH * 4;
+    start_x := TILE_WIDTH * 6;
     start_y := TILE_WIDTH * 2;
     for i := 0 to 10 do
         tiles[i] := 0;
 
-    tiles_count_x := 2;
-    tiles_count_y := 2;
+    tiles_count_x := 10;
+    tiles_count_y := 10;
 
     cursor.init(0,0);
     mouse_rect.init(0,0,10,10);
