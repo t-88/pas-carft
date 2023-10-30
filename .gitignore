@@ -2,3 +2,5 @@
 csfml_fpc/demos
 main
 main.o
+*.o
+*.ppu

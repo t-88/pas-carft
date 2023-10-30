@@ -21,15 +21,19 @@ CSFMLWindow;
     x : integer;
     y : integer;
     procedure new(x_ , y_ : integer);
-
   end;
+
+  type Vector2f = object 
+    x : cfloat;
+    y : cfloat;
+    procedure new(x_ , y_ : cfloat);
+  end;  
 
   function sfVector2f_New(x,y:cfloat): sfVector2f;
   function sfVector2i_New(x,y:Integer): sfVector2i;
   function sfColor_New(r,g,b:sfUint8): sfColor;
   function sfColora_New(r,g,b,a:sfUint8): sfColor;
   function sfFRect_New(x,y,w,h:cfloat): sfFloatRect;
-
 
 implementation
   function sfVector2f_New(x,y:cfloat): sfVector2f;
@@ -68,6 +72,12 @@ implementation
   end;
 
   procedure Vector2.new(x_ , y_ : integer);
+  begin
+    x := x_;
+    y := y_;
+  end;
+
+  procedure Vector2f.new(x_ , y_ : cfloat);
   begin
     x := x_;
     y := y_;
