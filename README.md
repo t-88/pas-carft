@@ -3,16 +3,15 @@ yet another mincarft clone but this time its in pascal which makes me cool in fr
 its developed and tested in linux, i dont know if it works on windows or how to make it work there, for now :O.    
 
 # ToDO
--   Place Tiles [X]
--   Wrapper around sfml for pascal( dont forget the main goal) [X]
--   moving cursor [X]
--   mouse projection 
--   deff textures , set view size for the game
-
--   Tile Editor [ ]
--   Add Shadow  [ ]
--   Sand And Water Sim [ ]
--   Moving Player [ ]
+- [x] Place Tiles 
+- [x] Wrapper around sfml for pascal( dont forget the main goal) 
+- [x] moving cursor 
+- [x] mouse projection 
+- [x] deff textures , set view size for the game
+- [ ] Tile Editor 
+- [ ] Add Shadow  
+- [ ] Sand And Water Sim 
+- [ ] Moving Player 
 
 
 # Setup And Run

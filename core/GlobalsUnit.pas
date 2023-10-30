@@ -10,6 +10,10 @@ const
     HEIGHT = 800;
     TILE_WIDTH =  64;
     TILE_HEIGHT = 64;
+
+    CHUNK_X = 10;
+    CHUNK_Y = 10;
+    CHUNK_Z = 3;
 var
     engine : Engine_obj;
     start_x : integer;
